@@ -22,7 +22,11 @@ from datasets import load_dataset
 import csv
 #import torch.multiprocessing as mp
 
-import wandb
+wandb_installed = True
+try:
+    import wandb
+except ImportError:
+    wandb_installed = False
 
 logging.basicConfig(
     level=logging.INFO,
@@ -313,8 +317,11 @@ if __name__ == "__main__":
     torch.manual_seed(123)
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-    if args.wandb_project:
+    wandb_initialized = False
+
+    if wandb_installed and args.wandb_project:
         wandb.init(project=args.wandb_project, name=args.wandb_run_name)
+        wandb_initialized = True
 
     if args.mode == 'decode':
         generate(args.input, args.approx_model_name, args.target_model_name, num_tokens=args.max_tokens, gamma=args.gamma,
@@ -380,7 +387,8 @@ if __name__ == "__main__":
                                                 drafter_indices_str=drafter_indices_str,
                                                 metric_name=metric_name,
                                                 timestamp=timestamp,
-                                                checkpoint_dir=args.checkpoint_dir)
+                                                checkpoint_dir=args.checkpoint_dir,
+                                                wandb_initialized=wandb_initialized)
 
         filename = f"{args.checkpoint_dir}/{model_family}-{drafter_indices_str}-{metric_name}-{timestamp}-weights.pt"
         torch.save(learner.state_dict(), filename)
@@ -446,5 +454,6 @@ if __name__ == "__main__":
         distill_dir_name = f"{args.distillation_directory}/{teacher_base}_to_{student_base}_{dataset_desc}_temperature_{args.temperature}_{timestamp}"
 
         distill_drafter_with_teacher(student_model, teacher_model, data_loader, epochs=distill_epochs, temperature=args.temperature,
-                                    lr=distill_lr, distillation_directory=distill_dir_name, wandb_project=args.wandb_project, wandb_run_name=args.wandb_run_name)
+                                    lr=distill_lr, distillation_directory=distill_dir_name, wandb_project=args.wandb_project,
+                                    wandb_run_name=args.wandb_run_name, wandb_initialized=wandb_initialized)
         print(f"Distilled student model saved to {distill_dir_name}")
