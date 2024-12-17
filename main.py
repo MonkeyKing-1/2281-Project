@@ -103,7 +103,6 @@ def parse_arguments():
     parser.add_argument('--num_layers', type=int, default=3, help='Number of layers for the Learner')
     parser.add_argument('--dropout', type=float, default=0.3, help='Dropout rate for the Learner')
 
-    parser.add_argument('--save_interval', type=int, default=100, help='Interval measured in batches for averaging and saving intermediate losses')
     parser.add_argument('--wandb_project', type=str, default=None, help='Wandb project name')
     parser.add_argument('--wandb_run_name', type=str, default=None, help='Wandb run name')
     parser.add_argument('--checkpoint_dir', type=str, default='learner-checkpoints', help='Directory to save the learner checkpoints')
@@ -116,6 +115,7 @@ def parse_arguments():
     parser.add_argument('--lr_distillation', type=float, default=1e-5, help='Learning rate for distillation')
     parser.add_argument('--temperature', type=float, default=1.0, help='Temperature for distillation')
     parser.add_argument('--distillation_directory', type=str, help='Directory for the outputs of distillation', required=False)
+    parser.add_argument('--save_interval', type=int, default=50, help='Interval for intermediate loss logging')
 
     args = parser.parse_args()
     return args
@@ -453,7 +453,8 @@ if __name__ == "__main__":
 
         distill_dir_name = f"{args.distillation_directory}/{teacher_base}_to_{student_base}_{dataset_desc}_temperature_{args.temperature}_{timestamp}"
 
-        distill_drafter_with_teacher(student_model, teacher_model, data_loader, epochs=distill_epochs, temperature=args.temperature,
-                                    lr=distill_lr, distillation_directory=distill_dir_name, wandb_project=args.wandb_project,
-                                    wandb_run_name=args.wandb_run_name, wandb_initialized=wandb_initialized)
+        distill_drafter_with_teacher(student_model, teacher_model, data_loader, epochs=distill_epochs,
+                                    temperature=args.temperature, lr=distill_lr, distillation_directory=distill_dir_name,
+                                    wandb_project=args.wandb_project, wandb_run_name=args.wandb_run_name,
+                                    wandb_initialized=wandb_initialized, save_interval=args.save_interval)
         print(f"Distilled student model saved to {distill_dir_name}")

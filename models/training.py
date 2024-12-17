@@ -192,7 +192,8 @@ def sample_training_data(drafters, target_model, data_loader, metric='kl', epoch
     return training_data
 
 def distill_drafter_with_teacher(student_model_wrapper, teacher_model_wrapper, data_loader, epochs=20, temperature=1.0,
-    lr=1e-5, distillation_directory="distillation_directory", wandb_project=None, wandb_run_name=None, wandb_initialized=False):
+    lr=1e-5, distillation_directory="distillation_directory", wandb_project=None, wandb_run_name=None,
+    wandb_initialized=False, save_interval=50):
     """
     Perform distillation by minimizing the KL divergence between distributions.
     """
@@ -247,9 +248,14 @@ def distill_drafter_with_teacher(student_model_wrapper, teacher_model_wrapper, d
             count += 1
             #global_step += 1
 
-            if step % 500 == 0 and step > 0:
+            if step % save_interval == 0:
                 avg_loss = running_loss / count
-                logging.info(f"Epoch {epoch+1}, Step {step}, Current Distillation Loss: {avg_loss:.4f}")
+                with open(loss_csv_path, 'a', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerow([epoch+1, step, avg_loss])
+                if wandb_initialized:
+                    import wandb
+                    wandb.log({"step_distill_loss": avg_loss, "epoch": epoch+1, "step": step})
 
         avg_epoch_loss = running_loss / count
         print(f"Epoch {epoch+1} completed with average distillation loss {avg_epoch_loss:.4f}")
@@ -258,7 +264,7 @@ def distill_drafter_with_teacher(student_model_wrapper, teacher_model_wrapper, d
 
         with open(loss_csv_path, 'a', newline='') as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow([epoch+1, avg_epoch_loss])
+            writer.writerow([epoch+1, 'end_of_epoch', avg_epoch_loss])
 
     student_model.save_pretrained(distillation_directory)
     student_model_wrapper.tokenizer.save_pretrained(distillation_directory)
