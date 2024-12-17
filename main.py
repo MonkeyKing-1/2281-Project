@@ -274,11 +274,16 @@ def generate_v2(input_text, ptfile, num_tokens=20, gamma = 10,
         torch.manual_seed(random_seed)
     else:
         torch.manual_seed(123)
-    loops, output = speculative_sampling_v3(input_ids, small_models, large_model, learner, num_tokens)
+    avg_loops = 0
+    for i in range(100):
+        torch.manual_seed(random_seed + i)
+        loops, output = speculative_sampling_v3(input_ids, small_models, large_model, learner, num_tokens)
     # output = autoregressive_sampling(input_ids, small_models[1], num_tokens)
-    generated_text = tokenizer.decode(output[0], skip_special_tokens=True)
-    color_print(f"our speculative_sampling: {generated_text}")   
-    print(loops)
+        generated_text = tokenizer.decode(output[0], skip_special_tokens=True)
+        color_print(f"our speculative_sampling: {generated_text}")
+        avg_loops += loops
+    avg_loops /= 100  
+    print(avg_loops)
 
     
     # torch.manual_seed(123)

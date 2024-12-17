@@ -133,8 +133,11 @@ def speculative_sampling_v3(prefix : torch.Tensor, approx_models: List[torch.nn.
             # for i in range(len(past_key_values)):
             #     past_key_values[i][0] = past_key_values[i][0][:, :, :n + 1]
             #     past_key_values[i][1] = past_key_values[i][1][:, :, :n + 1]
+            if n+2 <= x.shape[1]:
+                hidden = last_hidden[:, max(0, n+2-gamma):n+2,:]
+            else:
+                hidden = last_hidden[:, max(0, n+1-gamma):n+1,:]
             last_hidden = last_hidden[:,:n+1,:]
-            hidden = last_hidden[:, max(0, n+1-gamma):n+1,:]
             avg_hidden = hidden.mean(dim=1)
 
             #compute qv distribution for last token
