@@ -63,7 +63,7 @@ DRAFTERS_TEMP2=(
     distillation_openwebtext_10k/EleutherAI_pythia-2.8b_to_EleutherAI_pythia-70m_stas/openwebtext-10k_temperature_2.0_2024-12-17_18-20-46
     distillation_openwebtext_10k/EleutherAI_pythia-2.8b_to_EleutherAI_pythia-160m_stas/openwebtext-10k_temperature_2.0_2024-12-17_18-21-06
     distillation_openwebtext_10k/EleutherAI_pythia-2.8b_to_EleutherAI_pythia-410m_stas/openwebtext-10k_temperature_2.0_2024-12-17_18-21-33
-    distillation_pile_10k/EleutherAI_pythia-2.8b_to_EleutherAI_pythia-70m_NeelNanda/pile-10k_temperature_2.0_2024-12-17_19-20-48
+    distillation_pile_10k/EleutherAI_pythia-2.8b_to_EleutherAI_pythia-70m_NeelNanda/pile-10k_temperature_2.0_2024-12-17_18-20-48
     distillation_pile_10k/EleutherAI_pythia-2.8b_to_EleutherAI_pythia-160m_NeelNanda/pile-10k_temperature_2.0_2024-12-17_18-21-06
     distillation_pile_10k/EleutherAI_pythia-2.8b_to_EleutherAI_pythia-410m_NeelNanda/pile-10k_temperature_2.0_2024-12-17_18-21-33
     distillation_redpajama_v2/EleutherAI_pythia-2.8b_to_EleutherAI_pythia-70m_vilm/RedPajama-v2-small_temperature_2.0_2024-12-17_18-21-35
