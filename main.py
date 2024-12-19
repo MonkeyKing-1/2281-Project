@@ -9,7 +9,7 @@ import sys
 import random
 
 from sampling import autoregressive_sampling, speculative_sampling, speculative_sampling_v2
-from sampling.speculative_sampling import speculative_sampling, speculative_sampling_v2, speculative_sampling_v3, speculative_sampling_v4
+from sampling.speculative_sampling import speculative_sampling, speculative_sampling_v2, speculative_sampling_v3, speculative_sampling_v4, speculative_sampling_v5
 from globals import Decoder
 #from accelerate import Accelerator
 
@@ -35,6 +35,7 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)]
 )
 
+runs = 1000
 # my local models
 MODELZOO = {
     # llama-1
@@ -264,10 +265,10 @@ def generate_v2(inputs, ptfile, num_tokens=20, gamma = 4,
     # initialize model    
     # set learner model parameters
     input_dim = 4097 
-    hidden_dim = 32
+    hidden_dim = 64
     L = len(small_models) # 
-    num_layers = 25
-    dropout = 0.2
+    num_layers = 10
+    dropout = 0.5
     learner = LearnerModel(input_dim, hidden_dim, L, num_layers, dropout)
 
     # load weights
@@ -280,7 +281,7 @@ def generate_v2(inputs, ptfile, num_tokens=20, gamma = 4,
     else:
         torch.manual_seed(123)
     avg_loops = 0
-    for i in range(100):
+    for i in range(runs):
         torch.manual_seed(random_seed + i)
         input_ids = tokenizer.encode(inputs[i], return_tensors='pt').to(torch_device)
         if input_ids.shape[1] > 20:
@@ -290,7 +291,7 @@ def generate_v2(inputs, ptfile, num_tokens=20, gamma = 4,
         generated_text = tokenizer.decode(output[0], skip_special_tokens=True)
         color_print(f"our speculative_sampling: {generated_text}")
         avg_loops += loops
-    avg_loops /= 100  
+    avg_loops /= runs  
     print(avg_loops)
 
     
@@ -380,7 +381,7 @@ if __name__ == "__main__":
             all_texts.extend(texts)
 
         random.shuffle(all_texts)
-        all_texts = all_texts[:100]
+        all_texts = all_texts[:runs]
         generate_v2(all_texts, ptfile = args.ptfile, num_tokens=args.max_tokens, gamma=args.gamma,
                 random_seed = args.seed, verbose=args.verbose, use_benchmark = args.benchmark)
 
