@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=learner-distill-pythia
+#SBATCH --job-name=learner-distill-bloom
 #SBATCH --account=kempner_emalach_lab
 #SBATCH --output=/n/holylfs06/LABS/kempner_fellow_emalach/Lab/rli/2281-Project/logs-distillation/%j/logs.out
 #SBATCH --mail-type=BEGIN,END,FAIL
@@ -25,12 +25,13 @@ nvidia-smi
 
 cd /n/holylfs06/LABS/kempner_fellow_emalach/Lab/rli/2281-Project
 
-TARGET_MODEL="EleutherAI/pythia-2.8b"
-STUDENT_MODEL="EleutherAI/pythia-70m"
+#bigscience/bloomz-560m bigscience/bloom-560m bigscience/bloomz-1b1 bigscience/bloom-1b1
+TARGET_MODEL="bigscience/bloomz-7b1"
+STUDENT_MODEL="bigscience/bloom-1b1"
 EPOCHS=10
 BATCH_SIZE=4
 LR=1e-5
-TEMP=1.0
+TEMP=2.0
 SAVE_INTERVAL=50
 
 DATASETS=(
