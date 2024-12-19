@@ -55,16 +55,22 @@ def train_learner_with_target(learner, drafter_indices, target_model, data_loade
         writer.writerow(["epoch", "step", "loss"])
 
     wandb_initialized = wandb.run is not None
+    num_data_epochs = len(training_data)
 
     for epoch in range(epochs):
         print(f"\nStarting epoch {epoch+1}/{epochs}...")
+
+        if num_data_epochs == 1:
+            data = training_data[0]
+        else:
+            data = training_data[epoch % num_data_epochs]
+
         running_loss = 0.0
         count = 0
 
         interval_loss_sum = 0.0
         interval_count = 0
 
-        data = training_data[epoch]
         for step, d in enumerate(data):
             if step % 500 == 0:
                 logging.info(f"Processed {step} batches")

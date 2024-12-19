@@ -6,6 +6,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 import os
 import logging
 import sys
+import random
 
 from sampling import autoregressive_sampling, speculative_sampling, speculative_sampling_v2
 from sampling.speculative_sampling import speculative_sampling, speculative_sampling_v2, speculative_sampling_v3, speculative_sampling_v4
@@ -343,7 +344,7 @@ if __name__ == "__main__":
                 random_seed = args.seed, verbose=args.verbose, use_benchmark = args.benchmark)
 
     elif args.mode == 'train_learner':
-        if not args.distillation_directory:
+        if not args.ptfile:
             raise ValueError("Please provide a pre-generated dataset file using --ptfile")
 
         print(f"Loading dataset from {args.ptfile}...")
@@ -400,28 +401,70 @@ if __name__ == "__main__":
         print(f"Learner has finished training and the model was saved to {filename}")
 
     elif args.mode == 'create_dataset':
+        # if args.dataset_config is not None:
+        #     raw_dataset = load_dataset(args.dataset_name, args.dataset_config)
+        # else:
+        #     raw_dataset = load_dataset(args.dataset_name)
+        dataset_specs = [
+            {
+                "name": "stas/openwebtext-10k",
+                "config": None,
+                "split": "train",
+                "max_examples": args.max_examples
+            },
+            {
+                "name": "cimec/lambada",
+                "config": None,
+                "split": "validation",
+                "max_examples": args.max_examples
+            },
+            {
+                "name": "NeelNanda/pile-10k",
+                "config": None,
+                "split": "train",
+                "max_examples": args.max_examples
+            },
+            {
+                "name": "vilm/RedPajama-v2-small",
+                "config": None,
+                "split": "train",
+                "max_examples": args.max_examples
+            }
+        ]
+
+        all_texts = []
+        for spec in dataset_specs:
+            if spec["config"] is not None:
+                raw_dataset = load_dataset(spec["name"], spec["config"])
+            else:
+                raw_dataset = load_dataset(spec["name"])
+
+            dataset_split = raw_dataset[spec["split"]]
+            limit = min(spec["max_examples"], len(dataset_split))
+            dataset_split = dataset_split.select(range(limit))
+
+            texts = extract_texts_from_dataset(dataset_split, spec["name"])
+            all_texts.extend(texts)
+
+        random.shuffle(all_texts)
+
+        # dataset_split = raw_dataset[args.dataset_split]
+        # limit = min(args.max_examples, len(dataset_split))
+        # dataset_split = dataset_split.select(range(limit))
+
+        # texts = extract_texts_from_dataset(dataset_split, args.dataset_name)
+
         target_model = ModelWrapper(args.target_model_name)
+
+        tokenizer = target_model.tokenizer
+        dataset = EnhancedFeatureDataset(tokenizer, target_model, texts, seq_len=128)
+        data_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn, num_workers=0)
 
         drafters = args.drafters
         drafters = [ModelWrapper(m) for m in drafters]
         L = len(drafters)
         sizes = args.sizes
         sizes = [float(s) for s in sizes]
-
-        if args.dataset_config is not None:
-            raw_dataset = load_dataset(args.dataset_name, args.dataset_config)
-        else:
-            raw_dataset = load_dataset(args.dataset_name)
-
-        dataset_split = raw_dataset[args.dataset_split]
-        limit = min(args.max_examples, len(dataset_split))
-        dataset_split = dataset_split.select(range(limit))
-
-        texts = extract_texts_from_dataset(dataset_split, args.dataset_name)
-
-        tokenizer = target_model.tokenizer
-        dataset = EnhancedFeatureDataset(tokenizer, target_model, texts, seq_len=128)
-        data_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn, num_workers=0)
 
         sample_training_data(drafters, target_model, data_loader, metric=args.metric, epochs=args.epochs, output=args.ptfile, k=args.lk_k, sizes=sizes)
         print(f"Offline dataset saved to {args.ptfile}")
