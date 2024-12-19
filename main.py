@@ -211,7 +211,7 @@ def generate(input_text, approx_model_name, target_model_name, num_tokens=20, ga
         benchmark(speculative_sampling, "SP", use_profiling,
                   input_ids, small_model, large_model, max_len = num_tokens, gamma = gamma, top_k = top_k, top_p=top_p, random_seed = random_seed)
 
-def generate_v2(input_text, ptfile, num_tokens=20, gamma = 10,
+def generate_v2(inputs, ptfile, num_tokens=20, gamma = 4,
              random_seed = None, verbose = False, use_benchmark = False, use_profiling = False):
     # NOTE() approx_model_name and target_model_name should use the same tokenizer!
     
@@ -239,8 +239,8 @@ def generate_v2(input_text, ptfile, num_tokens=20, gamma = 10,
     small_models = [ModelWrapper(drafter_models[family][i]) for i in drafter_idxs]
     print("finish loading models")
     
-    input_ids = tokenizer.encode(input_text, return_tensors='pt').to(torch_device)
-
+    input_ids = tokenizer.encode(inputs[0], return_tensors='pt').to(torch_device)
+    
     # top_k = 0
     # top_p = 0.0
 
@@ -282,6 +282,9 @@ def generate_v2(input_text, ptfile, num_tokens=20, gamma = 10,
     avg_loops = 0
     for i in range(100):
         torch.manual_seed(random_seed + i)
+        input_ids = tokenizer.encode(inputs[i], return_tensors='pt').to(torch_device)
+        if input_ids.shape[1] > 20:
+            input_ids = input_ids[:, :20]
         loops, output = speculative_sampling_v3(input_ids, small_models, large_model, learner, num_tokens)
     # output = autoregressive_sampling(input_ids, small_models[1], num_tokens)
         generated_text = tokenizer.decode(output[0], skip_special_tokens=True)
@@ -335,13 +338,56 @@ if __name__ == "__main__":
     
     if args.mode == 'decode_v2':
         assert args.ptfile != None
-        generate_v2(args.input, ptfile = args.ptfile, num_tokens=args.max_tokens, gamma=args.gamma,
+        dataset_specs = [
+            {
+                "name": "stas/openwebtext-10k",
+                "config": None,
+                "split": "train",
+                "max_examples": args.max_examples
+            },
+            {
+                "name": "cimec/lambada",
+                "config": None,
+                "split": "validation",
+                "max_examples": args.max_examples
+            },
+            {
+                "name": "NeelNanda/pile-10k",
+                "config": None,
+                "split": "train",
+                "max_examples": args.max_examples
+            },
+            {
+                "name": "vilm/RedPajama-v2-small",
+                "config": None,
+                "split": "train",
+                "max_examples": args.max_examples
+            }
+        ]
+
+        all_texts = []
+        for spec in dataset_specs:
+            if spec["config"] is not None:
+                raw_dataset = load_dataset(spec["name"], spec["config"])
+            else:
+                raw_dataset = load_dataset(spec["name"])
+
+            dataset_split = raw_dataset[spec["split"]]
+            limit = min(spec["max_examples"], len(dataset_split))
+            dataset_split = dataset_split.select(range(limit))
+
+            texts = extract_texts_from_dataset(dataset_split, spec["name"])
+            all_texts.extend(texts)
+
+        random.shuffle(all_texts)
+        all_texts = all_texts[:100]
+        generate_v2(all_texts, ptfile = args.ptfile, num_tokens=args.max_tokens, gamma=args.gamma,
                 random_seed = args.seed, verbose=args.verbose, use_benchmark = args.benchmark)
 
-    if args.mode == 'decode_v2':
-        assert args.ptfile != None
-        generate_v2(args.input, ptfile = args.ptfile, num_tokens=args.max_tokens, gamma=args.gamma,
-                random_seed = args.seed, verbose=args.verbose, use_benchmark = args.benchmark)
+    # if args.mode == 'decode_v2':
+    #     assert args.ptfile != None
+    #     generate_v2(args.input, ptfile = args.ptfile, num_tokens=args.max_tokens, gamma=args.gamma,
+    #             random_seed = args.seed, verbose=args.verbose, use_benchmark = args.benchmark)
 
     elif args.mode == 'train_learner':
         if not args.ptfile:
